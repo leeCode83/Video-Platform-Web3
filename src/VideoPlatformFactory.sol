@@ -8,10 +8,11 @@ import {Video} from "./Video.sol";
 import {VideoPlatformPayment} from "./VideoPlatformPayment.sol";
 
 error InsufficientGas(address sender, uint256 send, uint256 require);
+error InvalidVideoAddress(address video);
 
 contract VideoPlatformFactory is Ownable, ReentrancyGuard {
-    address[] public deployedVideos;
     mapping(address => address[]) public userVideos;
+    mapping(address => bool) public isValidVideoContract;
     uint256 public videoCreationFee;
     address public immutable videoPayment;
 
@@ -23,23 +24,15 @@ contract VideoPlatformFactory is Ownable, ReentrancyGuard {
     );
 
     constructor(
-        address _tokenAddress,
-        uint256 _videoCreationFee
+        address _tokenAddress
     ) Ownable(msg.sender) ReentrancyGuard() {
         require(_tokenAddress != address(0), "Alamat token tidak boleh nol.");
-        videoCreationFee = _videoCreationFee;
         videoPayment = address(
             new VideoPlatformPayment(_tokenAddress, address(this))
         );
     }
 
-    function createVideoContract(
-        uint256 _viewingFee,
-        string memory _videoURI
-    ) public payable nonReentrant {
-        if (msg.value < videoCreationFee)
-            revert InsufficientGas(msg.sender, msg.value, videoCreationFee);
-
+    function createVideoContract(uint256 _viewingFee, string memory _videoURI) public nonReentrant {
         require(_viewingFee > 0, "Biaya menonton harus lebih besar dari nol.");
         require(bytes(_videoURI).length > 0, "URI video tidak boleh kosong.");
 
@@ -51,8 +44,8 @@ contract VideoPlatformFactory is Ownable, ReentrancyGuard {
             videoPayment
         );
 
-        deployedVideos.push(address(newVideo));
         userVideos[msg.sender].push(address(newVideo));
+        isValidVideoContract[address(newVideo)] = true;
 
         emit VideoContractCreated(
             address(newVideo),
@@ -60,5 +53,11 @@ contract VideoPlatformFactory is Ownable, ReentrancyGuard {
             _viewingFee,
             _videoURI
         );
+    }
+
+    function findValidVideoAddress(address _video) public view returns (bool){
+        if(!isValidVideoContract[_video]) return false;
+
+        return true;
     }
 }
