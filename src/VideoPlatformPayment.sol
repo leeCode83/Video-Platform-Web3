@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
@@ -72,7 +72,7 @@ contract VideoPlatformPayment is Ownable, ReentrancyGuard {
         address _viewer,
         uint256 _amount,
         address _videoOwner
-    ) external onlyFactory nonReentrant {
+    ) external nonReentrant {
         if (deposits[_viewer] < _amount)
             revert InsufficientBalance(_viewer, deposits[_viewer], _amount);
 
