@@ -23,16 +23,17 @@ contract VideoPlatformFactory is Ownable, ReentrancyGuard {
         string videoURI
     );
 
-    constructor(
-        address _tokenAddress
-    ) Ownable(msg.sender) ReentrancyGuard() {
+    constructor(address _tokenAddress) Ownable(msg.sender) ReentrancyGuard() {
         require(_tokenAddress != address(0), "Alamat token tidak boleh nol.");
         videoPayment = address(
             new VideoPlatformPayment(_tokenAddress, address(this))
         );
     }
 
-    function createVideoContract(uint256 _viewingFee, string memory _videoURI) public nonReentrant {
+    function createVideoContract(
+        uint256 _viewingFee,
+        string memory _videoURI
+    ) public nonReentrant returns (address) {
         require(_viewingFee > 0, "Biaya menonton harus lebih besar dari nol.");
         require(bytes(_videoURI).length > 0, "URI video tidak boleh kosong.");
 
@@ -53,10 +54,12 @@ contract VideoPlatformFactory is Ownable, ReentrancyGuard {
             _viewingFee,
             _videoURI
         );
+
+        return address(newVideo);
     }
 
-    function findValidVideoAddress(address _video) public view returns (bool){
-        if(!isValidVideoContract[_video]) return false;
+    function findValidVideoAddress(address _video) public view returns (bool) {
+        if (!isValidVideoContract[_video]) return false;
 
         return true;
     }

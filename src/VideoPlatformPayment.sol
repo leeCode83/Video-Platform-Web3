@@ -34,8 +34,8 @@ contract VideoPlatformPayment is Ownable, ReentrancyGuard {
 
         if (approveAmount < _amount) revert InsufficientBalance(msg.sender, approveAmount, _amount);
 
-        deposits[msg.sender] += _amount;
         token.safeTransferFrom(msg.sender, address(this), _amount);
+        deposits[msg.sender] += _amount;
 
         emit Deposited(msg.sender, _amount);
     }
