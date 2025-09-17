@@ -14,6 +14,7 @@ error ZeroValueError();
 contract VideoPlatformFactory is Ownable, ReentrancyGuard {
     mapping(address => address[]) public userVideos;
     mapping(address => bool) public isValidVideoContract;
+    address[] public allVideos;
     uint256 public videoCreationFee;
     address public immutable videoPayment;
 
@@ -35,7 +36,7 @@ contract VideoPlatformFactory is Ownable, ReentrancyGuard {
         uint256 _viewingFee,
         string memory _videoURI
     ) public nonReentrant returns (address) {
-        if(_viewingFee == 0) revert ZeroValueError();
+        if (_viewingFee == 0) revert ZeroValueError();
         require(bytes(_videoURI).length > 0, "URI video tidak boleh kosong.");
 
         Video newVideo = new Video(
@@ -48,6 +49,7 @@ contract VideoPlatformFactory is Ownable, ReentrancyGuard {
 
         userVideos[msg.sender].push(address(newVideo));
         isValidVideoContract[address(newVideo)] = true;
+        allVideos.push(address(newVideo));
 
         emit VideoContractCreated(
             address(newVideo),
@@ -57,6 +59,10 @@ contract VideoPlatformFactory is Ownable, ReentrancyGuard {
         );
 
         return address(newVideo);
+    }
+
+    function getAllVideos() public returns (address[]) {
+        return allVideos;
     }
 
     function findValidVideoAddress(address _video) public view returns (bool) {
