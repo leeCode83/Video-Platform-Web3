@@ -9,6 +9,7 @@ import {VideoPlatformPayment} from "./VideoPlatformPayment.sol";
 
 error InsufficientGas(address sender, uint256 send, uint256 require);
 error InvalidVideoAddress(address video);
+error ZeroValueError();
 
 contract VideoPlatformFactory is Ownable, ReentrancyGuard {
     mapping(address => address[]) public userVideos;
@@ -34,7 +35,7 @@ contract VideoPlatformFactory is Ownable, ReentrancyGuard {
         uint256 _viewingFee,
         string memory _videoURI
     ) public nonReentrant returns (address) {
-        require(_viewingFee > 0, "Biaya menonton harus lebih besar dari nol.");
+        if(_viewingFee == 0) revert ZeroValueError();
         require(bytes(_videoURI).length > 0, "URI video tidak boleh kosong.");
 
         Video newVideo = new Video(

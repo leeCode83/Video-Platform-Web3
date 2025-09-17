@@ -9,6 +9,9 @@ import {IVideoPlatformFactory} from "./interface/IVideoPlatformFactory.sol";
 
 error InsufficientBalance(address sender, uint256 available, uint256 require);
 error UnauthorizedCall(address caller);
+error EmptyTokenAddress();
+error EmptyFactoryAddress();
+error ZeroValueError();
 
 contract VideoPlatformPayment is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -21,18 +24,23 @@ contract VideoPlatformPayment is Ownable, ReentrancyGuard {
     event Withdrawn(address indexed user, uint256 amount);
     event OwnerPaid(address indexed viewer, uint256 amount);
 
-    constructor(address _tokenAddress, address _videoFactory) Ownable(msg.sender) {
-        require(_tokenAddress != address(0), "Alamat token tidak boleh nol.");
-        require(_videoFactory != address(0), "Alamat pabrik video tidak boleh nol.");
+    constructor(
+        address _tokenAddress,
+        address _videoFactory
+    ) Ownable(msg.sender) {
+        if (_tokenAddress == address(0)) revert EmptyTokenAddress();
+        if (_videoFactory == address(0)) revert EmptyFactoryAddress();
+
         token = IERC20(_tokenAddress);
         videoFactory = IVideoPlatformFactory(_videoFactory);
     }
 
     function deposit(uint256 _amount) public nonReentrant {
-        require(_amount > 0, "Jumlah deposit harus lebih besar dari nol.");
+        if (_amount == 0) revert ZeroValueError();
         uint256 approveAmount = token.allowance(msg.sender, address(this));
 
-        if (approveAmount < _amount) revert InsufficientBalance(msg.sender, approveAmount, _amount);
+        if (approveAmount < _amount)
+            revert InsufficientBalance(msg.sender, approveAmount, _amount);
 
         token.safeTransferFrom(msg.sender, address(this), _amount);
         deposits[msg.sender] += _amount;
@@ -41,8 +49,13 @@ contract VideoPlatformPayment is Ownable, ReentrancyGuard {
     }
 
     function withdraw(uint256 _amount) public nonReentrant {
-        require(_amount > 0, "Jumlah penarikan harus lebih besar dari nol.");
-        if (deposits[msg.sender] < _amount) revert InsufficientBalance(msg.sender, deposits[msg.sender], _amount);
+        if (_amount == 0) revert ZeroValueError();
+        if (deposits[msg.sender] < _amount)
+            revert InsufficientBalance(
+                msg.sender,
+                deposits[msg.sender],
+                _amount
+            );
 
         deposits[msg.sender] -= _amount;
         token.safeTransfer(msg.sender, _amount);
@@ -50,9 +63,15 @@ contract VideoPlatformPayment is Ownable, ReentrancyGuard {
         emit Withdrawn(msg.sender, _amount);
     }
 
-    function updateDeposit(address _viewer, uint256 _amount, address _videoOwner) external nonReentrant {
-        if(!videoFactory.findValidVideoAddress(msg.sender)) revert UnauthorizedCall(msg.sender);
-        if (deposits[_viewer] < _amount) revert InsufficientBalance(_viewer, deposits[_viewer], _amount);
+    function updateDeposit(
+        address _viewer,
+        uint256 _amount,
+        address _videoOwner
+    ) external nonReentrant {
+        if (!videoFactory.findValidVideoAddress(msg.sender))
+            revert UnauthorizedCall(msg.sender);
+        if (deposits[_viewer] < _amount)
+            revert InsufficientBalance(_viewer, deposits[_viewer], _amount);
 
         deposits[_viewer] -= _amount;
         deposits[_videoOwner] += _amount;
@@ -61,7 +80,7 @@ contract VideoPlatformPayment is Ownable, ReentrancyGuard {
     }
 
     function viewUserDeposit(address _viewer) external view returns (uint256) {
-        if(msg.sender != _viewer) revert UnauthorizedCall(msg.sender);
+        if (msg.sender != _viewer) revert UnauthorizedCall(msg.sender);
         return deposits[_viewer];
     }
 }
